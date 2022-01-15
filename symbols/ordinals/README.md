@@ -7,10 +7,12 @@ On macOS, library functions are exported by name. On Windows however, most libra
 
 To find the ordinal names for a version of the library, find the version closest matching the file version number stored in the PE resources. Note that for many versions code was deduplicated by the compiler, so if two exports have the same code that same code will be exported until multiple ordinals.
 
+Different subversions for those listed only add ordinals and do not renumber or remove them.
+
 
 ## Mid-Version Argument Changes
 
-With few exceptions, the number of arguments for exports do not change across these version. Those exceptions are listed below.
+With few exceptions, the number of arguments for exports do not change between subversions of the listed versions. Those exceptions are listed below.
 
 ```
 iml 7.0.0.198 -> 7.0.2.85 1134:imMemPurge (0 args -> 1 args)
