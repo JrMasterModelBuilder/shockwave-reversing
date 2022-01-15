@@ -12,7 +12,7 @@ Available in 32-bit and 64-bit versions.
 
 ## iOS APP (`Otto.app`)
 
-A compiled version of libOtto, but excludes the private and unused symbols in `libOtto`.
+A compiled version of `libOtto`, but excludes the private and unused symbols in `libOtto`.
 
 Available in 32-bit and 64-bit versions.
 
