@@ -5,21 +5,21 @@ Most binaries are stripped of their symbol names, however there are exceptions.
 
 ## iOS XDK (`libOtto.a`)
 
-Contains many object files compiled for iOS with many symbols.
+Contains many object files compiled for iOS with tons of symbols.
 
 Available in 32-bit and 64-bit versions.
 
 
 ## iOS APP (`Otto.app`)
 
-A compiled version of `libOtto`, but excludes the private and unused symbols in `libOtto`.
+A compiled iOS app with `libOtto`, but excludes the private and unused symbols in `libOtto`.
 
 Available in 32-bit and 64-bit versions.
 
 
 ## macOS library exports
 
-On macOS, exported functions have their original symbols.
+On macOS the exported functions have their original symbols.
 
 
 ## Some Windows library exports
