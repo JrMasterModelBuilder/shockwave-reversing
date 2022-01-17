@@ -40,3 +40,8 @@ Many functions have names, though very different from modern versions.
 ## XDK Versions
 
 The different versions of the XDK also contain a limited set of functions in headers and object files.
+
+
+## SpiderMonkey Source
+
+The modified SpiderMonkey source code is included with the different versions of Director that use it.
