@@ -1,0 +1,59 @@
+//------------------------------------------------
+//--- 010 Editor v12.0 Binary Template
+//
+//      File: DIR.bt
+//   Authors: JrMasterModelBuilder
+// Copyright: Copyright (c) 2022 JrMasterModelBuilder
+//   License: MPL-2.0
+//   Version: 1.0
+//   Purpose: Parse Shockwave uncompressed files.
+//  Category: Shockwave
+// File Mask: *.dir, *.cst, *.dxr, *.cxt
+//  ID Bytes: 58 46 49 52, 52 49 46 58
+//   History:
+//       1.0: Initial release
+//------------------------------------------------
+
+typedef union {
+	uint i <format=hex>;
+	char c[4];
+} FOURCC <bgcolor=cGreen>;
+
+typedef struct {
+	FOURCC tag <comment="Tag ID">;
+	uint size <bgcolor=cDkBlue, comment="Body size">;
+	if (size) {
+		byte data[size] <bgcolor=cGray, comment="Chunk data">;
+		if (size & 1) {
+			byte align <bgcolor=cBlack, comment="Align to 2 bytes">;
+		}
+	}
+} CHUNK <optimize=false, comment="Chunk">;
+
+typedef struct {
+	FOURCC magic <comment="Header magic">;
+	uint size <bgcolor=cDkBlue, comment="Body size">;
+	local int64 eof = FTell() + size;
+	FOURCC type <comment="File type">;
+
+	while (FTell() < eof) {
+		CHUNK chunk;
+	}
+} DIR <optimize=false, open=true, comment="DIR">;
+
+switch (ReadUInt()) {
+	case 0x58464952: {
+		BigEndian();
+		DIR dir;
+		break;
+	}
+	case 0x52494658: {
+		LittleEndian();
+		DIR dir;
+		break;
+	}
+	default: {
+		Warning("Unknown magic: %08x", ReadUInt());
+		return -1;
+	}
+}

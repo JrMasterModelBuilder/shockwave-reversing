@@ -1,0 +1,99 @@
+//------------------------------------------------
+//--- 010 Editor v12.0 Binary Template
+//
+//      File: DIR.bt
+//   Authors: JrMasterModelBuilder
+// Copyright: Copyright (c) 2022 JrMasterModelBuilder
+//   License: MPL-2.0
+//   Version: 1.0
+//   Purpose: Parse Shockwave compressed files.
+//  Category: Shockwave
+// File Mask: *.dcr, *.cct
+//  ID Bytes: 58 46 49 52, 52 49 46 58
+//   History:
+//       1.0: Initial release
+//------------------------------------------------
+
+typedef union {
+	uint i <format=hex>;
+	char c[4];
+} FOURCC <bgcolor=cGreen>;
+
+enum <uint> TAGS {
+	TAGS_FGEI = 0x46474549
+};
+
+typedef struct {
+	local uint i = 0;
+	while (ReadUByte(FTell() + i++) >> 7);
+	byte data[i];
+} VINT <
+	optimize=false,
+	bgcolor=cAqua,
+	read=readVINT,
+	comment="AKA: Compressed Number"
+>;
+
+uint valueVINT(VINT &vint) {
+	local uint n = 0;
+	local uint i = 0;
+	local ubyte b;
+	do {
+		b = vint.data[i++];
+		n = (n << 7) | (b & 0b1111111);
+	} while (b >> 7);
+	return n;
+}
+
+string readVINT(VINT &vint) {
+	string r;
+	SPrintf(r, "%u\n", valueVINT(vint));
+	return r;
+}
+
+typedef struct {
+	FOURCC tag <comment="Tag ID">;
+	VINT size <comment="Body size">;
+	local uint n = valueVINT(size);
+	if (n) {
+		byte data[n] <bgcolor=cGray, comment="Chunk data">;
+	}
+} INTRO_CHUNK <optimize=false, comment="Intro chunk">;
+
+typedef struct {
+	FOURCC magic <comment="Header magic">;
+	uint size <bgcolor=cDkBlue, comment="Body size">;
+	local int64 eof = FTell() + size;
+	FOURCC type <comment="File type">;
+
+	while (FTell() < eof) {
+		INTRO_CHUNK intro_chunk;
+		if (intro_chunk.tag.i == TAGS_FGEI) {
+			break;
+		}
+	}
+
+	if (FTell() < eof) {
+		byte data[eof - FTell()] <
+			bgcolor=cBlack,
+			comment="Appended data for chunks"
+		>;
+	}
+} DCR <optimize=false, open=true, comment="DCR">;
+
+switch (ReadUInt()) {
+	case 0x58464952: {
+		BigEndian();
+		DCR dcr;
+		break;
+	}
+	case 0x52494658: {
+		LittleEndian();
+		DCR dcr;
+		break;
+	}
+	default: {
+		Warning("Unknown magic: %08x", ReadUInt());
+		return -1;
+	}
+}
