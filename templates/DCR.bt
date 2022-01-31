@@ -12,6 +12,7 @@
 //  ID Bytes: 58 46 49 52, 52 49 46 58
 //   History:
 //       1.0: Initial release
+//       1.1: Parse the intro chunks
 //------------------------------------------------
 
 typedef union {
@@ -20,6 +21,9 @@ typedef union {
 } FOURCC <bgcolor=cGreen>;
 
 enum <uint> TAGS {
+	TAGS_FVER = 0x46766572,
+	TAGS_FCDR = 0x46636472,
+	TAGS_ABMP = 0x41424D50,
 	TAGS_FGEI = 0x46474549
 };
 
@@ -61,16 +65,101 @@ typedef struct {
 } INTRO_CHUNK <optimize=false, comment="Intro chunk">;
 
 typedef struct {
+	FOURCC tag <comment="Tag ID">;
+	VINT size <comment="Body size">;
+	local uint end = FTell() + valueVINT(size);
+	VINT fverVersion <comment="Format version of Fver">;
+
+	if (valueVINT(fverVersion) > 0x400) {
+		VINT imapVersion <comment="Format version from imap">;
+		VINT directorVersion <comment="Director version from imap">;
+	}
+
+	if (valueVINT(fverVersion) >= 0x501) {
+		ubyte versionStringLengh <
+			bgcolor=cLtBlue,
+			comment="Length of version string"
+		>;
+		char versionString[versionStringLengh] <
+			bgcolor=cWhite,
+			comment="Version string"
+		>;
+	}
+
+	if (FTell() < end) {
+		byte data[end - FTell()] <
+			bgcolor=cDkRed,
+			comment="Unexpected data"
+		>;
+	}
+} INTRO_CHUNK_FVER <optimize=false, comment="Intro chunk: Fver">;
+
+typedef struct {
+	FOURCC tag <comment="Tag ID">;
+	VINT size <comment="Body size">;
+	local uint n = valueVINT(size);
+	if (n) {
+		byte data[n] <bgcolor=cGray, comment="LZ77 compressed data">;
+	}
+} INTRO_CHUNK_FCDR <optimize=false, comment="Intro chunk: Fcdr">;
+
+typedef struct {
+	FOURCC tag <comment="Tag ID">;
+	VINT size <comment="Body size">;
+	local uint end = FTell() + valueVINT(size);
+	VINT compressor <comment="Fcdr compressor index">;
+	VINT decompressedSize <comment="LZ77 decompressed size">;
+	byte compressedData[end - FTell()] <
+		bgcolor=cGray,
+		comment="LZ77 compressed data"
+	>;
+} INTRO_CHUNK_ABMP <optimize=false, comment="Intro chunk: ABMP">;
+
+typedef struct {
+	FOURCC tag <comment="Tag ID">;
+	VINT size <comment="Body size">;
+	local uint n = valueVINT(size);
+	if (n) {
+		byte data[n] <bgcolor=cDkRed, comment="Unexpected data">;
+	}
+} INTRO_CHUNK_FGEI <optimize=false, comment="Intro chunk: GFEI">;
+
+typedef struct {
 	FOURCC magic <comment="Header magic">;
 	uint size <bgcolor=cDkBlue, comment="Body size">;
 	local int64 eof = FTell() + size;
 	FOURCC type <comment="File type">;
 
-	while (FTell() < eof) {
-		INTRO_CHUNK intro_chunk;
-		if (intro_chunk.tag.i == TAGS_FGEI) {
+	while (1) {
+		if (ReadUInt() == TAGS_FVER) {
+			INTRO_CHUNK_FVER fver;
 			break;
 		}
+		INTRO_CHUNK unknown;
+	}
+
+	while (1) {
+		if (ReadUInt() == TAGS_FCDR) {
+			INTRO_CHUNK_FCDR fcdr;
+			break;
+		}
+		INTRO_CHUNK unknown;
+	}
+
+	while (1) {
+		if (ReadUInt() == TAGS_ABMP) {
+			INTRO_CHUNK_ABMP abmp;
+			break;
+		}
+		INTRO_CHUNK unknown;
+	}
+
+	while (1) {
+		if (ReadUInt() == TAGS_FGEI) {
+			INTRO_CHUNK_FGEI fgei;
+			break;
+		}
+		INTRO_CHUNK unknown;
 	}
 
 	if (FTell() < eof) {
