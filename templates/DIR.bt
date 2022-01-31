@@ -11,6 +11,7 @@
 // File Mask: *.dir, *.cst, *.dxr, *.cxt
 //  ID Bytes: 58 46 49 52, 52 49 46 58
 //   History:
+//       1.1: Moved alignment out of each chunk
 //       1.0: Initial release
 //------------------------------------------------
 
@@ -24,9 +25,6 @@ typedef struct {
 	uint size <bgcolor=cDkBlue, comment="Body size">;
 	if (size) {
 		byte data[size] <bgcolor=cGray, comment="Chunk data">;
-		if (size & 1) {
-			byte align <bgcolor=cBlack, comment="Align to 2 bytes">;
-		}
 	}
 } CHUNK <optimize=false, comment="Chunk">;
 
@@ -38,6 +36,10 @@ typedef struct {
 
 	while (FTell() < eof) {
 		CHUNK chunk;
+
+		if (chunk.size & 1) {
+			byte align <bgcolor=cBlack, comment="Align to 2 bytes">;
+		}
 	}
 } DIR <optimize=false, open=true, comment="DIR">;
 
