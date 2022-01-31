@@ -11,8 +11,9 @@
 // File Mask: *.dcr, *.cct
 //  ID Bytes: 58 46 49 52, 52 49 46 58
 //   History:
-//       1.0: Initial release
+//       1.2: Use official veriable names
 //       1.1: Parse the intro chunks
+//       1.0: Initial release
 //------------------------------------------------
 
 typedef union {
@@ -72,7 +73,7 @@ typedef struct {
 
 	if (valueVINT(fverVersion) > 0x400) {
 		VINT imapVersion <comment="Format version from imap">;
-		VINT directorVersion <comment="Director version from imap">;
+		VINT fileVersion <comment="Director version from imap">;
 	}
 
 	if (valueVINT(fverVersion) >= 0x501) {
