@@ -11,6 +11,7 @@
 // File Mask: *.dir, *.cst, *.dxr, *.cxt
 //  ID Bytes: 58 46 49 52, 52 49 46 58
 //   History:
+//       1.2: Parse the imap and mmap chunks
 //       1.1: Moved alignment out of each chunk
 //       1.0: Initial release
 //------------------------------------------------
@@ -19,6 +20,11 @@ typedef union {
 	uint i <format=hex>;
 	char c[4];
 } FOURCC <bgcolor=cGreen>;
+
+enum <uint> TAGS {
+	TAGS_IMAP = 0x696D6170,
+	TAGS_MMAP = 0x6D6D6170
+};
 
 typedef struct {
 	FOURCC tag <comment="Tag ID">;
@@ -29,16 +35,106 @@ typedef struct {
 } CHUNK <optimize=false, comment="Chunk">;
 
 typedef struct {
+	FOURCC tag <comment="Tag ID">;
+	uint size <bgcolor=cDkBlue, comment="Body size">;
+	local uint end = FTell() + size;
+	int version <
+		bgcolor=cDkBlue,
+		comment="Version of this tag"
+	>;
+	int mmapOffset <
+		format=hex,
+		bgcolor=cPurple,
+		comment="Offset of mmap chunk"
+	>;
+	int fileVersion <
+		bgcolor=cDkBlue,
+		comment="File version"
+	>;
+	uint unknown1 <bgcolor=cYellow, comment="Unknown 1">;
+	uint unknown2 <bgcolor=cYellow, comment="Unknown 2">;
+	uint unknown3 <bgcolor=cYellow, comment="Unknown 3">;
+	if (FTell() < end) {
+		byte data[end - FTell()] <
+			bgcolor=cDkRed,
+			comment="Unexpected data"
+		>;
+	}
+} CHUNK_IMAP <optimize=false, comment="Chunk: imap">;
+
+typedef struct {
+	FOURCC tag <comment="Tag ID">;
+	uint size <bgcolor=cDkBlue, comment="Body size">;
+	local uint end = FTell() + size;
+	short headerSize <bgcolor=cBlue, comment="Size of this header">;
+	short entrySize <bgcolor=cBlue, comment="Size of each entry">;
+	int entryMax <bgcolor=cDkBlue, comment="All entry count">;
+	int entryUsed <bgcolor=cDkBlue, comment="Used entry count">;
+	int junkHead1 <bgcolor=cDkBlue, comment="Index of junk 1">;
+	int junkHead2 <bgcolor=cDkBlue, comment="Index of junk 2">;
+	int freeHead <bgcolor=cDkBlue, comment="Index of free">;
+	if (headerSize > 24) {
+		byte data[headerSize - 24] <
+			bgcolor=cDkRed,
+			comment="Unexpected data"
+		>;
+	}
+	typedef struct {
+		FOURCC tag <comment="Tag ID">;
+		uint size <bgcolor=cDkBlue, comment="Body size">;
+		int offset <
+			format=hex,
+			bgcolor=cPurple,
+			comment="Offset of the chunk"
+		>;
+		ushort flags <format=binary, bgcolor=cBlue, comment="Bit flags">;
+		ushort unknown1 <bgcolor=cYellow, comment="Unknown 1">;
+		int next <
+			bgcolor=cDkBlue,
+			comment="Next junk/free index, else arbitrary data"
+		>;
+		if (entrySize > 20) {
+			byte data[entrySize - 20] <
+				bgcolor=cDkRed,
+				comment="Unexpected data"
+			>;
+		}
+	} CHUNK_MMAP_ENTRY <optimize=false>;
+	CHUNK_MMAP_ENTRY entry[entryMax];
+	if (FTell() < end) {
+		byte data[end - FTell()] <
+			bgcolor=cDkRed,
+			comment="Unexpected data"
+		>;
+	}
+} CHUNK_MMAP <optimize=false, comment="Chunk: mmap">;
+
+typedef struct {
 	FOURCC magic <comment="Header magic">;
 	uint size <bgcolor=cDkBlue, comment="Body size">;
 	local int64 eof = FTell() + size;
 	FOURCC type <comment="File type">;
-
-	while (FTell() < eof) {
-		CHUNK chunk;
-
-		if (chunk.size & 1) {
-			byte align <bgcolor=cBlack, comment="Align to 2 bytes">;
+	local int64 offset;
+	while ((offset = FTell()) < eof) {
+		switch (ReadUInt()) {
+			case TAGS_IMAP: {
+				CHUNK_IMAP chunk;
+				break;
+			}
+			case TAGS_MMAP: {
+				CHUNK_MMAP chunk;
+				break;
+			}
+			default: {
+				CHUNK chunk;
+			}
+		}
+		if (FTell() < eof && chunk.size & 1) {
+			byte align <
+				hidden=true,
+				bgcolor=cBlack,
+				comment="Align to 2 bytes"
+			>;
 		}
 	}
 } DIR <optimize=false, open=true, comment="DIR">;
